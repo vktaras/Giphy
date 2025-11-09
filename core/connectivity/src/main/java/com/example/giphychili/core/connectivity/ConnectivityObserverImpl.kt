@@ -1,10 +1,15 @@
 package com.example.giphychili.core.connectivity
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import androidx.annotation.RequiresPermission
+import androidx.core.content.ContextCompat
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.channels.awaitClose
@@ -15,17 +20,32 @@ class ConnectivityObserverImpl @Inject constructor(
     @ApplicationContext private val context: Context
 ) : ConnectivityObserver {
 
-    override val status = callbackFlow {
+    @get:RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
+    override val status = callbackFlow @androidx.annotation.RequiresPermission(android.Manifest.permission.ACCESS_NETWORK_STATE) {
+        val hasPerm = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.ACCESS_NETWORK_STATE
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (!hasPerm) {
+            trySend(false)
+            awaitClose { /* no-op */ }
+            return@callbackFlow
+        }
+
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        val cb = object : ConnectivityManager.NetworkCallback() {
+        val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) { trySend(true).isSuccess }
             override fun onLost(network: Network) { trySend(false).isSuccess }
         }
-        cm.registerNetworkCallback(NetworkRequest.Builder().build(), cb)
+
+        @SuppressLint("MissingPermission") // ми щойно перевірили hasPerm
+        cm.registerNetworkCallback(NetworkRequest.Builder().build(), callback)
+
         trySend(isOnline(cm))
-        awaitClose { cm.unregisterNetworkCallback(cb) }
+        awaitClose { cm.unregisterNetworkCallback(callback) }
     }.distinctUntilChanged()
 
+    @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
     private fun isOnline(cm: ConnectivityManager): Boolean =
         cm.activeNetwork?.let { n ->
             cm.getNetworkCapabilities(n)
