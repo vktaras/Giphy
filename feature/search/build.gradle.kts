@@ -60,4 +60,9 @@ dependencies {
     // Coil (GIF)
     implementation(libs.coil.compose)
     implementation(libs.coil.gif)
+
+    implementation(libs.cash.turbine)
+    implementation(libs.okhttp.mockwebserver)
+    implementation(libs.kotlinx.coroutines.test)
+
 }
