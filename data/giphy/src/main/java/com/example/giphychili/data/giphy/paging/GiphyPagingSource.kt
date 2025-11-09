@@ -1,6 +1,5 @@
 package com.example.giphychili.data.giphy.paging
 
-
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.example.giphychili.data.giphy.remote.GiphyApi

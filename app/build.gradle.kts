@@ -124,7 +124,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":core:common"))
 
-    // Hilt runtime у app теж
+    // Hilt runtime
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
 }

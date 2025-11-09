@@ -15,11 +15,16 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object GiphyDataModule {
 
-    @Provides @Singleton
+    @Provides
+    @Singleton
     fun provideGiphyApi(retrofit: Retrofit): GiphyApi =
         retrofit.create(GiphyApi::class.java)
 
-    @Provides @Singleton
-    fun provideGiphyRepository(api: GiphyApi, @Named("GiphyApiKey") apiKey: String): GiphyRepository =
-        GiphyRepositoryImpl(api, apiKey = apiKey)
+    @Provides
+    @Singleton
+    fun provideGiphyRepository(
+        api: GiphyApi,
+        @Named("GiphyApiKey") apiKey: String
+    ): GiphyRepository =
+        GiphyRepositoryImpl(api, apiKey)
 }
