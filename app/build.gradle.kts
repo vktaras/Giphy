@@ -15,6 +15,10 @@ android {
         version = release(36)
     }
 
+    hilt {
+        enableAggregatingTask = false
+    }
+
     defaultConfig {
         applicationId = "com.example.giphychili"
         minSdk = 24
@@ -110,4 +114,17 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.cash.turbine)
     testImplementation(libs.okhttp.mockwebserver)
+
+    implementation(project(":feature:search"))
+    implementation(project(":feature:detail"))
+    implementation(project(":data:giphy"))
+    implementation(project(":domain:giphy"))
+    implementation(project(":core:ui"))
+    implementation(project(":core:connectivity"))
+    implementation(project(":core:network"))
+    implementation(project(":core:common"))
+
+    // Hilt runtime у app теж
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
 }

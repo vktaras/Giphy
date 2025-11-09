@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.giphychili.giphy"
+    namespace = "com.example.giphychili.domain.giphy"
     compileSdk {
         version = release(36)
     }
@@ -41,4 +41,11 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    implementation(project(":core:common"))
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Paging 3
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
 }
