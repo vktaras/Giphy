@@ -3,13 +3,14 @@ package com.example.giphychili.feature.detail
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 
 class DetailActivity : ComponentActivity() {
@@ -25,21 +26,51 @@ class DetailActivity : ComponentActivity() {
         val title = intent.getStringExtra(EXTRA_TITLE) ?: "GIF"
 
         setContent {
-            MaterialTheme { DetailScreen(title, url) }
+            MaterialTheme {
+                DetailScreen(
+                    title = title,
+                    url = url,
+                    onBack = { finish() }
+                )
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DetailScreen(title: String, url: String?) {
+private fun DetailScreen(
+    title: String,
+    url: String?,
+    onBack: () -> Unit
+) {
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(title) }) }
+            TopAppBar(
+                title = { Text(title) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Назад"
+                        )
+                    }
+                }
+            )
+        }
     ) { padding ->
-        Box(Modifier.fillMaxWidth().padding(padding)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
             if (url == null) {
-                Text("No URL", color = MaterialTheme.colorScheme.error)
+                Text(
+                    text = "No URL",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyLarge
+                )
             } else {
                 AsyncImage(
                     model = url,
