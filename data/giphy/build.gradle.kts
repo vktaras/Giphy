@@ -53,4 +53,11 @@ dependencies {
 
     implementation(libs.hilt.android)
     kapt(libs.hilt.compiler)
+
+    implementation(libs.cash.turbine)
+    implementation(libs.okhttp.mockwebserver)
+    implementation(libs.kotlinx.coroutines.test)
+
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
 }
