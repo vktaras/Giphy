@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.Flow
 
 @Composable
 fun SearchRoute(vm: SearchViewModel) {
-    val paging = vm.items.collectAsState().value
     val online = vm.isOnline.collectAsState().value
     val q = vm.query.collectAsState().value
 
@@ -88,7 +87,6 @@ fun GifGrid(pagingFlow: Flow<PagingData<Gif>>) {
             }
         }
 
-        // loadState секції — без apply/with, щоб не плутати DSL
         if (lazyItems.loadState.refresh is LoadState.Loading ||
             lazyItems.loadState.append is LoadState.Loading
         ) {
