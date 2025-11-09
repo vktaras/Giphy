@@ -39,7 +39,7 @@ class GiphyPagingSourceTest {
     @After fun tearDown() { server.shutdown() }
 
     @Test
-    fun firstPage_nextKey_uses_count() = runTest {
+    fun `first page nextKey uses count`() = runTest {
         // offset=0, count=25 -> nextKey=25
         val body = """
     {
@@ -84,7 +84,7 @@ class GiphyPagingSourceTest {
     }
 
     @Test
-    fun append_shortPage_advances_by_count_not_pageSize() = runTest {
+    fun `append shortPage advances by count not pageSize`() = runTest {
         // offset=25, count=7 -> nextKey=32 (не 50)
         val body = """
     {
@@ -129,7 +129,8 @@ class GiphyPagingSourceTest {
     }
 
 
-    @Test fun lastPage_count0_nextKey_null() = runTest {
+    @Test
+    fun `lastPage count0 nextKey null`() = runTest {
         val body = """{"data":[],"pagination":{"total_count":32,"count":0,"offset":32}}"""
         server.enqueue(MockResponse().setBody(body).setResponseCode(200))
 
@@ -142,7 +143,7 @@ class GiphyPagingSourceTest {
     }
 
     @Test
-    fun smallOffset_prevKey_clamped_to0() = runTest {
+    fun `smallOffset prevKey clamped to0`() = runTest {
         // offset = 10, count = 1 -> prevKey=0, nextKey=11
         val body = """
     {
@@ -177,7 +178,8 @@ class GiphyPagingSourceTest {
         assertEquals(11, page.nextKey)  // 10 + count(1)
     }
 
-    @Test fun http500_returnsError() = runTest {
+    @Test
+    fun `http500 returns Error`() = runTest {
         server.enqueue(MockResponse().setResponseCode(500))
         val src = GiphyPagingSource(api, "KEY", "cats", 25)
 
@@ -185,7 +187,8 @@ class GiphyPagingSourceTest {
         assertTrue(res is PagingSource.LoadResult.Error)
     }
 
-    @Test fun malformedJson_returnsError() = runTest {
+    @Test
+    fun `malformed Json returns Error`() = runTest {
         server.enqueue(MockResponse().setBody("{not json").setResponseCode(200))
         val src = GiphyPagingSource(api, "KEY", "cats", 25)
 
@@ -193,7 +196,8 @@ class GiphyPagingSourceTest {
         assertTrue(res is PagingSource.LoadResult.Error)
     }
 
-    @Test fun networkDisconnect_returnsError() = runTest {
+    @Test
+    fun `network Disconnect returns Error`() = runTest {
         server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
         val src = GiphyPagingSource(api, "KEY", "cats", 25)
 
@@ -201,7 +205,8 @@ class GiphyPagingSourceTest {
         assertTrue(res is PagingSource.LoadResult.Error)
     }
 
-    @Test fun getRefreshKey_uses_prev_plus_pageSize_or_next_minus_pageSize() {
+    @Test
+    fun `getRefreshKey uses prev plus pageSize or next minus page Size`() {
         val src = GiphyPagingSource(api, "KEY", "cats", pageSize = 25)
 
         fun mk(n: Int, start: Int = 0) =
