@@ -2,109 +2,202 @@ package com.example.giphychili.feature.search.ui
 
 import android.content.Intent
 import android.content.res.Configuration
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
-import androidx.paging.PagingData
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.giphichili.core.ui.components.OfflineBanner
 import com.example.giphichili.core.ui.components.ErrorRow
 import com.example.giphychili.domain.giphy.entity.Gif
 import com.example.giphychili.feature.detail. DetailActivity
 import com.example.giphychili.feature.search.SearchViewModel
-import kotlinx.coroutines.flow.Flow
 
 @Composable
 fun SearchRoute(vm: SearchViewModel) {
-    val online = vm.isOnline.collectAsState().value
-    val q = vm.query.collectAsState().value
+    val online by vm.isOnline.collectAsState()
+    val query by vm.query.collectAsState()
+    val items = vm.items.collectAsLazyPagingItems()
 
-    Column(Modifier.fillMaxSize()) {
-        if (!online) OfflineBanner()
-        SearchBar(q, vm::onQueryChange)
-        GifGrid(pagingFlow = vm.items)
+    Scaffold(
+        topBar = {
+            Column {
+                SearchBar(
+                    query = query,
+                    onChange = vm::onQueryChange,
+                    onSearch = { items.refresh() }
+                )
+                AnimatedVisibility(visible = !online) {
+                    OfflineBanner()
+                }
+            }
+        }
+    ) { padding ->
+        GifGrid(
+            items = items,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        )
     }
 }
 
 @Composable
-fun SearchBar(query: String, onChange: (String) -> Unit) {
+private fun SearchBar(
+    query: String,
+    onChange: (String) -> Unit,
+    onSearch: () -> Unit
+) {
     TextField(
         value = query,
         onValueChange = onChange,
         singleLine = true,
         placeholder = { Text("Search GIFs…") },
-        modifier = Modifier.fillMaxWidth().padding(8.dp)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+        keyboardActions = KeyboardActions(onSearch = { onSearch() })
     )
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun GifGrid(pagingFlow: Flow<PagingData<Gif>>) {
-    val lazyItems = pagingFlow.collectAsLazyPagingItems()
+fun GifGrid(
+    items: androidx.paging.compose.LazyPagingItems<Gif>,
+    modifier: Modifier = Modifier
+) {
     val cfg = LocalConfiguration.current
     val columns = if (cfg.orientation == Configuration.ORIENTATION_LANDSCAPE) 4 else 2
     val ctx = LocalContext.current
 
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(columns),
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(8.dp)
-    ) {
-        items(lazyItems.itemCount) { i ->
-            val gif = lazyItems[i] ?: return@items
-            Card(
-                modifier = Modifier
-                    .padding(4.dp)
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clickable {
+    Box(modifier) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns),
+            contentPadding = PaddingValues(8.dp)
+        ) {
+            if (items.itemCount == 0 &&
+                items.loadState.refresh !is LoadState.Loading &&
+                items.loadState.refresh !is LoadState.Error
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    EmptyState(modifier = Modifier.fillMaxWidth().padding(24.dp))
+                }
+            }
+
+            items(
+                count = items.itemCount,
+                key = { i ->
+                    val p = items.peek(i)
+                    when {
+                        p != null -> "${p.id}:${p.previewUrl}"
+                        else -> "placeholder:$i"
+                    }
+                },
+                contentType = { "gif" }
+            ) { index ->
+                val gif = items[index] ?: return@items
+                GifCard(
+                    gif = gif,
+                    onClick = {
                         ctx.startActivity(
                             Intent(ctx, DetailActivity::class.java).apply {
                                 putExtra(DetailActivity.EXTRA_URL, gif.originalUrl)
                                 putExtra(DetailActivity.EXTRA_TITLE, gif.title.orEmpty())
                             }
                         )
-                    }
-            ) {
-                AsyncImage(
-                    model = gif.previewUrl,
-                    contentDescription = gif.title,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    },
+                    modifier = Modifier
+                        .padding(4.dp)
                 )
+            }
+
+            if (items.loadState.append is LoadState.Loading) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    GridLoading(modifier = Modifier.fillMaxWidth().padding(16.dp))
+                }
+            }
+
+            if (items.loadState.append is LoadState.Error) {
+                val e = (items.loadState.append as LoadState.Error).error
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    ErrorRow(
+                        message = e.message ?: "Error",
+                        onRetry = { items.retry() }
+                    )
+                }
+            }
+
+            if (items.loadState.refresh is LoadState.Error) {
+                val e = (items.loadState.refresh as LoadState.Error).error
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    ErrorRow(
+                        message = e.message ?: "Error",
+                        onRetry = { items.retry() }
+                    )
+                }
             }
         }
 
-        if (lazyItems.loadState.refresh is LoadState.Loading ||
-            lazyItems.loadState.append is LoadState.Loading
-        ) {
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                Box(Modifier.fillMaxWidth().padding(16.dp)) { CircularProgressIndicator() }
-            }
-        }
-        if (lazyItems.loadState.refresh is LoadState.Error) {
-            val e = (lazyItems.loadState.refresh as LoadState.Error).error
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                ErrorRow(e.message ?: "Error", onRetry = { lazyItems.retry() })
-            }
-        }
-        if (lazyItems.loadState.append is LoadState.Error) {
-            val e = (lazyItems.loadState.append as LoadState.Error).error
-            item(span = { GridItemSpan(maxLineSpan) }) {
-                ErrorRow(e.message ?: "Error", onRetry = { lazyItems.retry() })
+        if (items.loadState.refresh is LoadState.Loading) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
         }
     }
 }
+
+@Composable
+private fun GifCard(
+    gif: Gif,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        AsyncImage(
+            model = ImageRequest.Builder(LocalContext.current)
+                .data(gif.previewUrl)
+                .crossfade(true)
+                .build(),
+            contentDescription = gif.title,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+@Composable
+private fun GridLoading(modifier: Modifier = Modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+}
+
+@Composable
+private fun EmptyState(modifier: Modifier = Modifier) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Text("Nothing has been found")
+    }
+}
+
