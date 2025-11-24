@@ -2,6 +2,7 @@ package com.example.giphychili.feature.search.ui
 
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
@@ -22,7 +23,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.paging.LoadState
 import androidx.paging.compose.collectAsLazyPagingItems
+import coil.ImageLoader
 import coil.compose.AsyncImage
+import coil.decode.GifDecoder
+import coil.decode.ImageDecoderDecoder
 import coil.request.ImageRequest
 import com.example.giphichili.core.ui.components.OfflineBanner
 import com.example.giphichili.core.ui.components.ErrorRow
@@ -31,7 +35,10 @@ import com.example.giphychili.feature.detail. DetailActivity
 import com.example.giphychili.feature.search.SearchViewModel
 
 @Composable
-fun SearchRoute(vm: SearchViewModel) {
+fun SearchRoute(
+    vm: SearchViewModel,
+    imageLoader: ImageLoader
+) {
     val online by vm.isOnline.collectAsState()
     val query by vm.query.collectAsState()
     val items = vm.items.collectAsLazyPagingItems()
@@ -52,6 +59,7 @@ fun SearchRoute(vm: SearchViewModel) {
     ) { padding ->
         GifGrid(
             items = items,
+            imageLoader = imageLoader,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
@@ -82,6 +90,7 @@ private fun SearchBar(
 @Composable
 fun GifGrid(
     items: androidx.paging.compose.LazyPagingItems<Gif>,
+    imageLoader: ImageLoader,
     modifier: Modifier = Modifier
 ) {
     val cfg = LocalConfiguration.current
@@ -125,7 +134,8 @@ fun GifGrid(
                         )
                     },
                     modifier = Modifier
-                        .padding(4.dp)
+                        .padding(4.dp),
+                    imageLoader = imageLoader
                 )
             }
 
@@ -168,8 +178,11 @@ fun GifGrid(
 private fun GifCard(
     gif: Gif,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    imageLoader: ImageLoader
 ) {
+    val ctx = LocalContext.current
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -178,16 +191,19 @@ private fun GifCard(
         shape = MaterialTheme.shapes.medium
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
+            model = ImageRequest.Builder(ctx)
                 .data(gif.previewUrl)
                 .crossfade(true)
                 .build(),
+            imageLoader = imageLoader,
             contentDescription = gif.title,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
         )
     }
 }
+
+
 
 @Composable
 private fun GridLoading(modifier: Modifier = Modifier) {
