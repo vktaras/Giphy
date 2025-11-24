@@ -203,8 +203,6 @@ private fun GifCard(
     }
 }
 
-
-
 @Composable
 private fun GridLoading(modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) { CircularProgressIndicator() }
